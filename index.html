@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>diglist</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@300;400;500&family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0e0e;
+    --surface: #161616;
+    --border: #2a2a2a;
+    --accent: #e8d5a3;
+    --accent2: #c4956a;
+    --text: #e8e4dc;
+    --muted: #6b6560;
+    --danger: #c45a5a;
+    --tag-bg: #1e1c18;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    min-height: 100vh;
+    padding: 0 0 80px;
+  }
+
+  /* ── Auth screen ── */
+  #auth-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 16px;
+  }
+
+  .auth-title {
+    font-family: 'VT323', monospace;
+    font-size: 48px;
+    color: var(--accent);
+  }
+
+  .auth-sub {
+    color: var(--muted);
+    font-size: 11px;
+    margin-bottom: 8px;
+  }
+
+  .auth-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .auth-input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    padding: 10px 16px;
+    outline: none;
+    width: 240px;
+    transition: border-color 0.15s;
+  }
+
+.auth-input:focus { border-color: var(--accent); }
+
+.auth-btn {
+  padding: 0.55rem 1.2rem;
+  background: var(--accent);
+  color: #111;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.auth-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+  .auth-error {
+    color: var(--danger);
+    font-size: 11px;
+    height: 14px;
+  }
+
+  .auth-request-link {
+    margin-top: 16px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .auth-request-link button {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+  }
+
+  #request-form {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+    width: 100%;
+    max-width: 320px;
+  }
+  #request-form textarea {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    padding: 10px 16px;
+    outline: none;
+    resize: vertical;
+    min-height: 60px;
+  }
+  #request-form textarea:focus { border-color: var(--accent); }
+  #request-msg { font-size: 11px; color: var(--muted); min-height: 14px; }
+
+  /* Admin panel */
+  .admin-request-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .admin-request-item:last-child { border-bottom: none; }
+  .admin-request-email { font-size: 13px; color: var(--text); }
+  .admin-request-message { font-size: 11px; color: var(--muted); font-style: italic; }
+  .admin-request-date { font-size: 10px; color: var(--muted); }
+  .admin-request-actions { display: flex; gap: 8px; }
+  #admin-empty { font-size: 12px; color: var(--muted); text-align: center; padding: 24px 0; }
+
+  /* ── App ── */
+  #app { display: none; }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 28px 32px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 100;
+  }
+
+  .site-title {
+    font-family: 'VT323', monospace;
+    font-size: 36px;
+    color: var(--accent);
+  }
+
+  .header-right {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .count { color: var(--muted); font-size: 11px; }
+
+  .btn {
+    background: var(--accent);
+    color: #0e0e0e;
+    border: none;
+    padding: 8px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: opacity 0.15s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.4; cursor: default; }
+  .btn.secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .btn.secondary:hover { border-color: var(--accent); color: var(--accent); opacity: 1; }
+  .kofi-btn {
+    background: #ff5e5b;
+    color: #fff;
+    text-decoration: none;
+  }
+  .kofi-btn:hover { opacity: 0.85; }
+  .github-btn { padding: 8px 10px; text-decoration: none; }
+
+  .toolbar {
+    padding: 14px 32px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .batch-bar {
+    padding: 10px 32px;
+    background: #1a1a12;
+    border-bottom: 1px solid var(--border);
+    display: none;
+    gap: 10px;
+    align-items: center;
+  }
+  .batch-bar.visible { display: flex; }
+  .batch-label { font-size: 11px; color: var(--accent); }
+
+  .item-artwork {
+    width: 52px;
+    height: 52px;
+    object-fit: cover;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    margin-right: 14px;
+    margin-top: 2px;
+  }
+  .item-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 13px;
+    height: 13px;
+    border: 1px solid var(--muted);
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 4px;
+    transition: border-color 0.15s;
+    position: relative;
+    display: inline-block;
+  }
+  .item-checkbox:hover { border-color: var(--accent); }
+  .item-checkbox:checked {
+    border-color: var(--accent);
+  }
+  .item-checkbox:checked::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 0px;
+    width: 4px;
+    height: 8px;
+    border: 1px solid var(--accent);
+    border-top: none;
+    border-left: none;
+    transform: rotate(45deg);
+  }
+
+  .search-input, .filter-select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    padding: 7px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .search-input { flex: 1; max-width: 320px; }
+  .search-input::placeholder { color: var(--muted); }
+  .search-input:focus, .filter-select:focus { border-color: var(--accent); }
+  .filter-select { cursor: pointer; }
+  .filter-select option { background: var(--surface); }
+
+  .list { padding: 0 32px; }
+
+  .item {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 0;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: start;
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+
+  .item-header {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+
+  .item-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+    text-decoration: none;
+    word-break: break-word;
+  }
+  .item-title:hover { color: var(--accent); }
+
+  .item-artist { color: var(--accent2); font-size: 12px; }
+
+  .item-link {
+    font-size: 11px;
+    color: var(--muted);
+    text-decoration: none;
+    word-break: break-all;
+  }
+  .item-link:hover { color: var(--accent); }
+
+  .platform {
+    display: inline-block;
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    margin-right: 6px;
+    font-size: 10px;
+    color: var(--accent2);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    vertical-align: middle;
+  }
+
+  .item-note {
+    margin-top: 8px;
+    color: var(--muted);
+    font-style: italic;
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
+
+  .item-tags {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .tag {
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    font-size: 10px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: border-color 0.1s, color 0.1s;
+    letter-spacing: 0.04em;
+  }
+  .tag:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .item-meta {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 6px;
+    display: flex;
+    gap: 12px;
+  }
+
+  .status-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+  .status-dot.pending { background: var(--muted); }
+  .status-dot.listening { background: #e8c86a; } /* kept for legacy data compatibility */
+  .status-dot.done { background: #6ac46a; }
+
+  .item-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .action-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.05em;
+  }
+  .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .action-btn.done-btn.active { border-color: #6ac46a; color: #6ac46a; }
+
+  .listened-section { opacity: 0.55; }
+  .listened-section .item-title { text-decoration: line-through; text-decoration-color: var(--muted); }
+
+  .item-player {
+    display: block;
+    overflow: hidden;
+    max-height: 0;
+    margin-top: 0;
+    grid-column: 1 / -1;
+    transition: max-height 0.35s ease, margin-top 0.35s ease;
+  }
+  .item-player.open {
+    max-height: 350px;
+    margin-top: 14px;
+  }
+  .item-player iframe {
+    width: 100%;
+    height: 350px;
+    border: none;
+    display: block;
+  }
+  .item-player .player-loading {
+    color: var(--muted);
+    font-size: 11px;
+    padding: 12px 0;
+  }
+  .item-player .player-error {
+    color: var(--danger);
+    font-size: 11px;
+    padding: 12px 0;
+  }
+
+  .play-btn {
+    background: none;
+    border: none;
+    color: var(--accent2);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    padding: 0;
+    letter-spacing: 0.05em;
+    transition: color 0.15s;
+  }
+  .play-btn:hover { color: var(--accent); }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 28px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-style: italic;
+    color: var(--accent);
+    margin-bottom: 20px;
+  }
+
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 5px;
+  }
+  .field input, .field textarea, .field select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+    resize: vertical;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); }
+  .field textarea { min-height: 80px; }
+  .field select { cursor: pointer; }
+  .field select option { background: var(--surface); }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 24px;
+  }
+
+  .empty {
+    padding: 80px 32px;
+    text-align: center;
+    color: var(--muted);
+  }
+  .empty-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-style: italic;
+    color: var(--border);
+    margin-bottom: 8px;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 20px;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    z-index: 300;
+  }
+  .toast.show { opacity: 1; }
+
+  /* ── Pagination ── */
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 24px 0 8px;
+  }
+  .page-info {
+    font-size: 11px;
+    color: var(--muted);
+    min-width: 48px;
+    text-align: center;
+  }
+
+  /* ── Mobile footer (hidden on desktop) ── */
+  .mobile-footer { display: none; }
+  /* ── Mobile search (hidden on desktop) ── */
+  .mobile-search { display: none; }
+
+  /* ── Mobile responsive ── */
+  @media (max-width: 600px) {
+    body { padding: 0 0 40px; }
+
+    /* Auth */
+    .auth-row { flex-direction: column; align-items: stretch; width: 100%; max-width: 320px; }
+    .auth-input { width: 100%; }
+
+    /* Header */
+    header {
+      padding: 16px 16px 12px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .header-right {
+      width: 100%;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .header-right .btn:first-child { margin-left: auto; }
+    .site-title { font-size: 30px; }
+
+    /* Hide tip + github + import/export from header on mobile */
+    header .kofi-btn,
+    header .github-btn,
+    header .header-import-export { display: none; }
+
+    /* Show mobile search in header, hide toolbar search */
+    .mobile-search { display: block; flex: 1; min-width: 0; }
+    .toolbar .search-input { display: none; }
+
+    /* Toolbar */
+    .toolbar {
+      padding: 10px 16px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .search-input { max-width: 100%; width: 100%; }
+    .filter-select { flex: 1; }
+
+    /* Batch bar */
+    .batch-bar { padding: 10px 16px; flex-wrap: wrap; }
+
+    /* List */
+    .list { padding: 0 16px; }
+
+    /* Item action buttons — bigger touch targets */
+    .action-btn {
+      font-size: 12px;
+      padding: 10px 14px;
+      min-height: 44px;
+      flex: 1;
+      text-align: center;
+    }
+    .item-actions { width: 100%; }
+    .item { grid-template-columns: 1fr; }
+
+    /* Mobile footer */
+    .mobile-footer {
+      display: flex;
+      gap: 10px;
+      padding: 20px 16px;
+      border-top: 1px solid var(--border);
+      margin-top: 8px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- Auth -->
+<div id="auth-screen">
+  <div class="auth-title">diglist</div>
+  <div class="auth-sub" id="auth-sub">enter your email to receive a login link</div>
+  <div class="auth-row" id="auth-row">
+    <input class="auth-input" type="email" id="auth-input" placeholder="your@email.com" onkeydown="if(event.key==='Enter') tryAuth()">
+    <button class="auth-btn" id="auth-btn" onclick="tryAuth()">send link</button>
+  </div>
+  <div class="auth-error" id="auth-error"></div>
+  <div class="auth-request-link">
+    don't have an account? <button onclick="toggleRequestForm()">request access</button>
+  </div>
+  <div id="request-form">
+    <input class="auth-input" type="email" id="request-email" placeholder="your@email.com">
+    <textarea id="request-message" placeholder="optional: why you'd like access"></textarea>
+    <button class="auth-btn" id="request-btn" onclick="submitAccessRequest()">send request</button>
+    <div id="request-msg"></div>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app">
+  <header>
+    <div class="site-title">diglist</div>
+    <input class="search-input mobile-search" type="text" placeholder="search..." id="mobile-search" oninput="syncSearch(this);currentPage=0;render()">
+    <div class="header-right">
+      <button class="btn secondary header-import-export" onclick="exportJSON()">↓ export</button>
+      <button class="btn secondary header-import-export" onclick="document.getElementById('import-input').click()">↑ import</button>
+      <input type="file" id="import-input" accept=".json" style="display:none" onchange="importJSON(event)">
+      <button class="btn" id="admin-btn" style="display:none;background:#7c3aed;border-color:#7c3aed" onclick="openAdminPanel()">requests <span id="admin-badge"></span></button>
+      <button class="btn secondary" onclick="signOut()">sign out</button>
+      <button class="btn" onclick="openAddModal()">+ add</button>
+      <a class="btn kofi-btn" href="https://ko-fi.com/gabre0910" target="_blank" rel="noopener">🍰 TIP</a>
+      <a class="btn secondary github-btn" href="https://github.com/Skid8277/diglist" target="_blank" rel="noopener" title="View source on GitHub"><svg height="14" width="14" viewBox="0 0 16 16" fill="currentColor" style="vertical-align:middle"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <input class="search-input" type="text" placeholder="search..." id="search-input" oninput="syncSearch(this);currentPage=0;render()">
+    <select class="filter-select" id="filter-status" onchange="currentPage=0;render()">
+      <option value="all">all</option>
+      <option value="pending">to listen</option>
+      <option value="done">listened</option>
+    </select>
+    <select class="filter-select" id="filter-tag" onchange="currentPage=0;render()">
+      <option value="">tag</option>
+    </select>
+    <select class="filter-select" id="sort-select" onchange="currentPage=0;render()">
+      <option value="date-desc">newest</option>
+      <option value="date-asc">oldest</option>
+      <option value="alpha">a–z</option>
+    </select>
+  </div>
+
+  <div class="batch-bar" id="batch-bar">
+    <span class="batch-label" id="batch-label">0 selected</span>
+    <select class="filter-select" id="batch-status">
+      <option value="">— change status —</option>
+      <option value="pending">To listen</option>
+      <option value="done">Listened</option>
+    </select>
+    <button class="btn" onclick="applyBatchStatus()">apply</button>
+    <button class="btn secondary" onclick="batchDelete()" style="border-color:var(--danger);color:var(--danger)">delete</button>
+    <button class="btn secondary" onclick="clearSelection()">cancel</button>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <footer class="mobile-footer">
+    <button class="btn secondary" onclick="exportJSON()">↓ export</button>
+    <button class="btn secondary" onclick="document.getElementById('import-input-footer').click()">↑ import</button>
+    <input type="file" id="import-input-footer" accept=".json" style="display:none" onchange="importJSON(event)">
+    <a class="btn kofi-btn" href="https://ko-fi.com/gabre0910" target="_blank" rel="noopener">🍰 TIP</a>
+    <a class="btn secondary github-btn" href="https://github.com/Skid8277/diglist" target="_blank" rel="noopener" title="View source on GitHub"><svg height="14" width="14" viewBox="0 0 16 16" fill="currentColor" style="vertical-align:middle"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg> github</a>
+  </footer>
+</div>
+
+<!-- Admin Panel Modal -->
+<div class="modal-overlay" id="admin-modal" onclick="closeAdminModal(event)">
+  <div class="modal">
+    <div class="modal-title" style="font-family:'IBM Plex Mono',monospace">Access Requests</div>
+    <div id="admin-requests-list"><div id="admin-empty">loading...</div></div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Add</div>
+    <div class="field">
+      <label>Link (Bandcamp, Soundcloud, etc.)</label>
+      <input type="url" id="f-url" placeholder="https://..." oninput="autofillFromUrl()">
+    </div>
+    <div class="field">
+      <label>Title / album</label>
+      <input type="text" id="f-title" placeholder="Album or track name">
+    </div>
+    <div class="field">
+      <label>Artist</label>
+      <input type="text" id="f-artist" placeholder="Artist name">
+    </div>
+    <div class="field">
+      <label>Tags (comma-separated)</label>
+      <input type="text" id="f-tags" placeholder="ambient, electronic, local...">
+    </div>
+    <div class="field">
+      <label>Notes</label>
+      <textarea id="f-note" placeholder="Recommended by someone? Context?"></textarea>
+    </div>
+    <div class="field">
+      <label>Status</label>
+      <select id="f-status">
+        <option value="pending">To listen</option>
+        <option value="done">Listened</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="closeModal()">cancel</button>
+      <button class="btn" id="save-btn" onclick="saveItem()">save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Auth ──────────────────────────────────────────────────
+// Set your password here — this will NOT be committed to the repo
+let currentSession = null;
+
+// Handle magic link redirect — Supabase redirects to the app with the token in the hash
+async function handleAuthRedirect() {
+  const hash = window.location.hash;
+  console.log('[auth] hash:', hash);
+  if (!hash) return false;
+
+  const params = new URLSearchParams(hash.replace('#', ''));
+  const accessToken = params.get('access_token');
+  const refreshToken = params.get('refresh_token');
+  console.log('[auth] access_token found:', !!accessToken);
+  if (!accessToken) return false;
+
+  currentSession = { access_token: accessToken, refresh_token: refreshToken };
+  localStorage.setItem('diglist-session', JSON.stringify(currentSession));
+  history.replaceState(null, '', window.location.pathname); // remove the token hash from the URL without triggering a page reload (unlike window.location.hash = '')
+  return true;
+}
+
+async function restoreSession() {
+  const saved = localStorage.getItem('diglist-session');
+  console.log('[auth] localStorage session found:', !!saved);
+  if (!saved) return false;
+  currentSession = JSON.parse(saved);
+  try {
+    const payload = JSON.parse(atob(currentSession.access_token.split('.')[1]));
+    if (Date.now() > (payload.exp * 1000) - 5 * 60 * 1000) {
+      console.log('[auth] access token stale, attempting proactive refresh');
+      const ok = await refreshSession();
+      if (!ok) {
+        localStorage.removeItem('diglist-session');
+        currentSession = null;
+        return false;
+      }
+    }
+  } catch { /* JWT parse failed — let 401 path handle it */ }
+  return true;
+}
+
+async function refreshSession() {
+  if (!currentSession?.refresh_token) return false;
+  try {
+    const res = await fetch('/.netlify/functions/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: currentSession.refresh_token }),
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    currentSession = { access_token: data.access_token, refresh_token: data.refresh_token };
+    localStorage.setItem('diglist-session', JSON.stringify(currentSession));
+    return true;
+  } catch { return false; }
+}
+
+async function tryAuth() {
+  const email = document.getElementById('auth-input').value.trim();
+  if (!email) return;
+
+  const btn = document.getElementById('auth-btn');
+  btn.disabled = true;
+  btn.textContent = 'sending...';
+  document.getElementById('auth-error').textContent = '';
+
+  try {
+    const res = await fetch('/.netlify/functions/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, redirectTo: window.location.origin }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    document.getElementById('auth-row').style.display = 'none';
+    document.getElementById('auth-sub').textContent = 'if this email is registered, you\'ll receive a magic link shortly';
+  } catch (err) {
+    document.getElementById('auth-error').textContent = err.message || 'unexpected error';
+    btn.disabled = false;
+    btn.textContent = 'send link';
+  }
+}
+
+function signOut() {
+  localStorage.removeItem('diglist-session');
+  currentSession = null;
+  location.reload();
+}
+
+// ── Access requests ────────────────────────────────────────
+function toggleRequestForm() {
+  const form = document.getElementById('request-form');
+  form.style.display = form.style.display === 'flex' ? 'none' : 'flex';
+  if (form.style.display === 'flex') document.getElementById('request-email').focus();
+}
+
+async function submitAccessRequest() {
+  const email = document.getElementById('request-email').value.trim();
+  const message = document.getElementById('request-message').value.trim();
+  const btn = document.getElementById('request-btn');
+  const msg = document.getElementById('request-msg');
+
+  if (!email) { msg.textContent = 'email required'; msg.style.color = 'var(--danger)'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'sending...';
+  msg.textContent = '';
+
+  try {
+    const res = await fetch('/.netlify/functions/request-access', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, message }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    msg.style.color = 'var(--muted)';
+    msg.textContent = 'request sent — you\'ll hear back by email';
+    btn.style.display = 'none';
+    document.getElementById('request-email').disabled = true;
+    document.getElementById('request-message').disabled = true;
+  } catch (err) {
+    msg.style.color = 'var(--danger)';
+    msg.textContent = err.message || 'unexpected error';
+    btn.disabled = false;
+    btn.textContent = 'send request';
+  }
+}
+
+// ── Admin panel ────────────────────────────────────────────
+async function checkAdminAccess() {
+  if (!currentSession) return;
+  const res = await fetch('/.netlify/functions/approve-request', {
+    headers: { Authorization: `Bearer ${currentSession.access_token}` },
+  });
+  if (!res.ok) return;
+  const requests = await res.json();
+  const btn = document.getElementById('admin-btn');
+  btn.style.display = '';
+  const badge = document.getElementById('admin-badge');
+  badge.textContent = requests.length > 0 ? `(${requests.length})` : '';
+}
+
+async function openAdminPanel() {
+  document.getElementById('admin-modal').style.display = 'flex';
+  const list = document.getElementById('admin-requests-list');
+  list.innerHTML = '<div id="admin-empty">loading...</div>';
+
+  const res = await fetch('/.netlify/functions/approve-request', {
+    headers: { Authorization: `Bearer ${currentSession.access_token}` },
+  });
+  const requests = await res.json();
+
+  if (!requests.length) {
+    list.innerHTML = '<div id="admin-empty">no pending requests</div>';
+    return;
+  }
+
+  list.innerHTML = requests.map(r => `
+    <div class="admin-request-item" id="req-${r.id}">
+      <div class="admin-request-email">${r.email}</div>
+      ${r.message ? `<div class="admin-request-message">"${r.message}"</div>` : ''}
+      <div class="admin-request-date">${new Date(r.created_at).toLocaleDateString()}</div>
+      <div class="admin-request-actions">
+        <button class="btn" onclick="handleRequest('${r.id}','approved')">approve</button>
+        <button class="btn secondary" style="border-color:var(--danger);color:var(--danger)" onclick="handleRequest('${r.id}','rejected')">reject</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function handleRequest(requestId, action) {
+  const res = await fetch('/.netlify/functions/approve-request', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentSession.access_token}` },
+    body: JSON.stringify({ requestId, action }),
+  });
+  if (!res.ok) { showToast('error processing request'); return; }
+  document.getElementById(`req-${requestId}`)?.remove();
+  if (!document.querySelector('.admin-request-item')) {
+    document.getElementById('admin-requests-list').innerHTML = '<div id="admin-empty">no pending requests</div>';
+  }
+  document.getElementById('admin-badge').textContent = '';
+  showToast(action === 'approved' ? 'user invited' : 'request rejected');
+}
+
+function closeAdminModal(e) {
+  if (e.target === document.getElementById('admin-modal')) {
+    document.getElementById('admin-modal').style.display = 'none';
+  }
+}
+
+// Init auth
+(async () => {
+  const redirected = await handleAuthRedirect();
+  const restored = await restoreSession();
+  console.log('[auth] redirected:', redirected, '| restored:', restored);
+  if (redirected || restored) {
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    loadItems();
+    checkAdminAccess();
+  }
+})();
+
+// ── State ─────────────────────────────────────────────────
+let items = [];
+let editingId = null;
+let currentPage = 0;
+const PAGE_SIZE = 10;
+
+// ── API ───────────────────────────────────────────────────
+async function apiGet() {
+  const res = await fetch('/.netlify/functions/items', {
+    headers: { Authorization: `Bearer ${currentSession.access_token}` }
+  });
+  if (res.status === 401) {
+    const refreshed = await refreshSession();
+    if (!refreshed) throw new Error('session_expired');
+    const retry = await fetch('/.netlify/functions/items', {
+      headers: { Authorization: `Bearer ${currentSession.access_token}` }
+    });
+    if (!retry.ok) throw new Error('Failed to load');
+    const rows = await retry.json();
+    return rows.map(r => ({ id: r.id, ...r.data }));
+  }
+  if (!res.ok) throw new Error('Failed to load');
+  const rows = await res.json();
+  return rows.map(r => ({ id: r.id, ...r.data }));
+}
+
+async function apiUpsert(item) {
+  const { id, ...rest } = item;
+  const res = await fetch('/.netlify/functions/items', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${currentSession.access_token}`
+    },
+    body: JSON.stringify({ id, data: rest }),
+  });
+  if (!res.ok) throw new Error('Failed to save');
+}
+
+async function apiDelete(id) {
+  const res = await fetch('/.netlify/functions/items', {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${currentSession.access_token}`
+    },
+    body: JSON.stringify({ id }),
+  });
+  if (!res.ok) throw new Error('Failed to delete');
+}
+
+// ── Load ──────────────────────────────────────────────────
+async function loadItems() {
+  document.getElementById('list').innerHTML = '<div class="empty"><div class="empty-title">loading...</div></div>';
+  try {
+    items = await apiGet();
+    render();
+  } catch(e) {
+    if (e.message === 'session_expired') {
+      signOut();
+    } else {
+      showToast('Error connecting to the database');
+    }
+  }
+}
+
+// ── Render ────────────────────────────────────────────────
+let _cachedTags = null;
+let _cachedItemsLen = -1;
+function getAllTags() {
+  if (_cachedTags && items.length === _cachedItemsLen) return _cachedTags;
+  const all = new Set();
+  items.forEach(i => (i.tags || []).forEach(t => all.add(t)));
+  _cachedTags = [...all].sort();
+  _cachedItemsLen = items.length;
+  return _cachedTags;
+}
+
+function updateTagFilter() {
+  const sel = document.getElementById('filter-tag');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">all tags</option>';
+  getAllTags().forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t; opt.textContent = t;
+    if (t === cur) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function detectPlatform(url) {
+  if (!url) return null;
+  if (url.includes('bandcamp.com')) return 'Bandcamp';
+  if (url.includes('soundcloud.com')) return 'SoundCloud';
+  if (url.includes('spotify.com')) return 'Spotify';
+  if (url.includes('youtube.com') || url.includes('youtu.be')) return 'YouTube';
+  if (url.includes('music.apple.com')) return 'Apple Music';
+  return 'Link';
+}
+
+function syncSearch(el) {
+  const other = el.id === 'search-input' ? 'mobile-search' : 'search-input';
+  const otherEl = document.getElementById(other);
+  if (otherEl) otherEl.value = el.value;
+}
+
+function render() {
+  const search = document.getElementById('search-input').value.toLowerCase();
+  const statusFilter = document.getElementById('filter-status').value;
+  const tagFilter = document.getElementById('filter-tag').value;
+
+  updateTagFilter();
+
+  let filtered = items.filter(item => {
+    if (statusFilter !== 'all' && item.status !== statusFilter) return false;
+    if (tagFilter && !(item.tags || []).includes(tagFilter)) return false;
+    if (search) {
+      const hay = [item.title, item.artist, item.note, ...(item.tags||[])].join(' ').toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  const sortBy = document.getElementById('sort-select').value;
+  filtered.sort((a, b) => {
+    switch (sortBy) {
+      case 'date-asc':  return new Date(a.addedAt||0) - new Date(b.addedAt||0);
+      case 'date-desc': return new Date(b.addedAt||0) - new Date(a.addedAt||0);
+      case 'alpha':     return (a.artist||a.title||'').localeCompare(b.artist||b.title||'');
+      default:          return 0;
+    }
+  });
+
+  const list = document.getElementById('list');
+
+  if (items.length === 0) {
+    list.innerHTML = `<div class="empty"><div class="empty-title">Your list is empty</div><div>Add a Bandcamp link to get started</div></div>`;
+    return;
+  }
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty"><div class="empty-title">Nothing found</div></div>`;
+    return;
+  }
+
+  list.innerHTML = '';
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  if (currentPage >= totalPages) currentPage = Math.max(0, totalPages - 1);
+  const paginated = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+  const active = paginated.filter(i => i.status !== 'done');
+  const done = paginated.filter(i => i.status === 'done');
+
+  function renderItems(arr, sectionClass) {
+    arr.forEach(item => {
+      const platform = detectPlatform(item.url);
+      const platformBadge = platform ? `<span class="platform">${platform}</span>` : '';
+      const linkEl = item.url
+        ? `<a class="item-link" href="${item.url}" target="_blank" rel="noopener">${platformBadge}${item.url}</a>`
+        : '';
+      const tagsEl = (item.tags||[]).length > 0
+        ? `<div class="item-tags">${item.tags.map(t => `<span class="tag" onclick="filterByTag('${esc(t)}')">${esc(t)}</span>`).join('')}</div>`
+        : '';
+      const noteEl = item.note ? `<div class="item-note">${esc(item.note)}</div>` : '';
+      const statusLabel = { pending: 'to listen', listening: 'listening', done: 'listened' }[item.status] || 'to listen';
+      const addedDate = item.addedAt ? new Date(item.addedAt).toLocaleDateString('en-US') : '';
+
+      const isBandcamp = item.url && item.url.includes('bandcamp.com');
+      const artworkEl = item.artworkUrl
+        ? `<img class="item-artwork" src="${esc(item.artworkUrl)}" alt="" loading="lazy">`
+        : '';
+
+      const div = document.createElement('div');
+      div.className = 'item' + (sectionClass ? ' ' + sectionClass : '');
+      div.dataset.id = item.id;
+      div.style.display = 'grid';
+      div.style.gridTemplateColumns = item.artworkUrl ? 'auto auto 1fr auto' : 'auto 1fr auto';
+      div.style.gridTemplateRows = 'auto auto';
+      div.innerHTML = `
+        <input type="checkbox" class="item-checkbox" id="chk-${item.id}" onchange="onCheckboxChange()" style="margin-right:14px">
+        ${artworkEl}
+        <div class="item-left">
+          <div class="item-header">
+            <span class="item-title" style="cursor:default">${esc(item.title || 'Untitled')}</span>
+            ${item.artist ? `<span class="item-artist">${esc(item.artist)}</span>` : ''}
+          </div>
+          ${linkEl}
+          ${noteEl}
+          ${tagsEl}
+          <div class="item-meta">
+            <span><span class="status-dot ${item.status||'pending'}"></span>${statusLabel}</span>
+            ${addedDate ? `<span>added ${addedDate}</span>` : ''}
+            ${isBandcamp ? `<button class="play-btn" onclick="togglePlayer('${item.id}', '${esc(item.url)}')">▶ listen</button>` : (item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener" class="play-btn">↗ open</a>` : '')}
+          </div>
+        </div>
+        <div class="item-actions">
+          <button class="action-btn done-btn ${item.status==='done'?'active':''}" onclick="toggleDone('${item.id}')" title="Mark as listened">✓</button>
+          <button class="action-btn" onclick="openEditModal('${item.id}')">edit</button>
+          <button class="action-btn" onclick="deleteItem('${item.id}')" style="color:var(--danger);border-color:transparent">✕</button>
+        </div>
+        <div class="item-player" id="player-${item.id}" style="grid-column:1/-1"></div>
+      `;
+      list.appendChild(div);
+    });
+  }
+
+  renderItems(active, '');
+  if (done.length > 0) renderItems(done, 'listened-section');
+
+  if (totalPages > 1) {
+    const pager = document.createElement('div');
+    pager.className = 'pagination';
+    pager.innerHTML = `
+      <button class="btn secondary" onclick="goToPage(${currentPage - 1})" ${currentPage === 0 ? 'disabled' : ''}>← prev</button>
+      <span class="page-info">${currentPage + 1} / ${totalPages}</span>
+      <button class="btn secondary" onclick="goToPage(${currentPage + 1})" ${currentPage >= totalPages - 1 ? 'disabled' : ''}>next →</button>
+    `;
+    list.appendChild(pager);
+  }
+}
+
+function goToPage(page) {
+  currentPage = page;
+  render();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function filterByTag(tag) {
+  document.getElementById('filter-tag').value = tag;
+  render();
+}
+
+// ── Batch selection ───────────────────────────────────────
+function getSelectedIds() {
+  return [...document.querySelectorAll('.item-checkbox:checked')].map(el => el.id.replace('chk-', ''));
+}
+
+function onCheckboxChange() {
+  const ids = getSelectedIds();
+  const bar = document.getElementById('batch-bar');
+  if (ids.length > 0) {
+    bar.classList.add('visible');
+    document.getElementById('batch-label').textContent = `${ids.length} selected`;
+  } else {
+    bar.classList.remove('visible');
+  }
+}
+
+function clearSelection() {
+  document.querySelectorAll('.item-checkbox:checked').forEach(el => el.checked = false);
+  document.getElementById('batch-bar').classList.remove('visible');
+  document.getElementById('batch-status').value = '';
+}
+
+async function batchDelete() {
+  const ids = getSelectedIds();
+  if (ids.length === 0) return;
+  if (!confirm(`Delete ${ids.length} item${ids.length > 1 ? 's' : ''}?`)) return;
+
+  try {
+    await Promise.all(ids.map(id => apiDelete(id)));
+    items = items.filter(i => !ids.includes(i.id));
+    clearSelection();
+    render();
+    showToast(`${ids.length} item${ids.length > 1 ? 's' : ''} deleted`);
+  } catch(e) {
+    showToast('Error deleting item');
+  }
+}
+
+async function applyBatchStatus() {
+  const status = document.getElementById('batch-status').value;
+  if (!status) { showToast('Choose a status'); return; }
+  const ids = getSelectedIds();
+  if (ids.length === 0) return;
+
+  const btn = document.querySelector('#batch-bar .btn');
+  btn.disabled = true;
+
+  try {
+    await Promise.all(ids.map(id => {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+      item.status = status;
+      return apiUpsert(item);
+    }));
+    clearSelection();
+    render();
+    showToast(`${ids.length} item${ids.length > 1 ? 's' : ''} updated`);
+  } catch(e) {
+    showToast('Error updating item');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ── Embed player ──────────────────────────────────────────
+async function togglePlayer(id, url) {
+  const playerEl = document.getElementById(`player-${id}`);
+  if (!playerEl) return;
+
+  function closePlayer(el) {
+    el.classList.remove('open');
+    const cid = el.id.replace('player-', '');
+    const cBtn = document.querySelector(`#chk-${cid}`)?.closest('.item')?.querySelector('.play-btn');
+    if (cBtn) cBtn.textContent = '▶ listen';
+    setTimeout(() => { el.innerHTML = ''; }, 350);
+  }
+
+  if (playerEl.classList.contains('open')) {
+    closePlayer(playerEl);
+    return;
+  }
+
+  // Close any other open player
+  document.querySelectorAll('.item-player.open').forEach(el => closePlayer(el));
+
+  playerEl.classList.add('open');
+  playerEl.innerHTML = '<div class="player-loading">loading player...</div>';
+
+  const playBtn = document.querySelector(`#chk-${id}`)?.closest('.item')?.querySelector('.play-btn');
+  if (playBtn) playBtn.textContent = '✕ close';
+
+  try {
+    const res = await fetch(`/.netlify/functions/embed?url=${encodeURIComponent(url)}`);
+    const data = await res.json();
+    if (data.embedUrl) {
+      playerEl.innerHTML = `<iframe src="${data.embedUrl}" seamless></iframe>`;
+    } else {
+      playerEl.innerHTML = `<div class="player-error">${data.error || 'Player unavailable'}</div>`;
+    }
+  } catch(e) {
+    playerEl.innerHTML = '<div class="player-error">Failed to load</div>';
+  }
+}
+
+// ── Modal ─────────────────────────────────────────────────
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modal-title').textContent = 'Add';
+  ['f-url','f-title','f-artist','f-tags','f-note'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-status').value = 'pending';
+  document.getElementById('modal').classList.add('open');
+  document.getElementById('f-url').focus();
+}
+
+function openEditModal(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  editingId = id;
+  document.getElementById('modal-title').textContent = 'Edit';
+  document.getElementById('f-url').value = item.url || '';
+  document.getElementById('f-title').value = item.title || '';
+  document.getElementById('f-artist').value = item.artist || '';
+  document.getElementById('f-tags').value = (item.tags||[]).join(', ');
+  document.getElementById('f-note').value = item.note || '';
+  document.getElementById('f-status').value = item.status || 'pending';
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modal')) return;
+  document.getElementById('modal').classList.remove('open');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.getElementById('modal').classList.remove('open');
+});
+
+function autofillFromUrl() {
+  const url = document.getElementById('f-url').value.trim();
+  if (!url.includes('bandcamp.com')) return;
+  try {
+    const u = new URL(url);
+    const artistField = document.getElementById('f-artist');
+    const titleField = document.getElementById('f-title');
+    if (artistField.value === '' && u.hostname.includes('.bandcamp.com')) {
+      artistField.value = u.hostname.replace('.bandcamp.com', '').replace(/-/g, ' ');
+    }
+    const parts = u.pathname.split('/').filter(Boolean);
+    if (titleField.value === '' && parts.length >= 2) {
+      titleField.value = parts[1].replace(/-/g, ' ');
+    }
+  } catch(e) {}
+}
+
+async function saveItem() {
+  const url = document.getElementById('f-url').value.trim();
+  const title = document.getElementById('f-title').value.trim();
+  const artist = document.getElementById('f-artist').value.trim();
+  const tagsRaw = document.getElementById('f-tags').value.trim();
+  const note = document.getElementById('f-note').value.trim();
+  const status = document.getElementById('f-status').value;
+
+  if (!url && !title) { showToast('Add at least a link or a title.'); return; }
+
+  const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true;
+  btn.textContent = 'saving...';
+
+  try {
+    // Fetch artwork for Bandcamp URLs on new items
+    let artworkUrl = editingId ? (items.find(i => i.id === editingId)?.artworkUrl || null) : null;
+    if (!editingId && url && url.includes('bandcamp.com')) {
+      try {
+        const embedRes = await fetch(`/.netlify/functions/embed?url=${encodeURIComponent(url)}`);
+        const embedData = await embedRes.json();
+        if (embedData.artworkUrl) artworkUrl = embedData.artworkUrl;
+      } catch(e) {
+        console.warn('Failed to fetch artwork for Bandcamp URL:', e);
+      }
+    }
+
+    if (editingId) {
+      const idx = items.findIndex(i => i.id === editingId);
+      const updated = { ...items[idx], url, title, artist, tags, note, status, artworkUrl };
+      await apiUpsert(updated);
+      items[idx] = updated;
+    } else {
+      const item = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+        url, title, artist, tags, note, status, artworkUrl,
+        addedAt: new Date().toISOString()
+      };
+      await apiUpsert(item);
+      items.unshift(item);
+    }
+    document.getElementById('modal').classList.remove('open');
+    render();
+  } catch(e) {
+    showToast('Error saving item');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'save';
+  }
+}
+
+async function toggleDone(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  item.status = item.status === 'done' ? 'pending' : 'done';
+  try {
+    await apiUpsert(item);
+    render();
+  } catch(e) {
+    showToast('Error updating item');
+  }
+}
+
+async function deleteItem(id) {
+  if (!confirm('Delete this item?')) return;
+  try {
+    await apiDelete(id);
+    items = items.filter(i => i.id !== id);
+    render();
+  } catch(e) {
+    showToast('Error deleting item');
+  }
+}
+
+// ── Import / Export ───────────────────────────────────────
+function exportJSON() {
+  const data = JSON.stringify(items, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `diglist-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = '';
+
+  let imported;
+  try {
+    const text = await file.text();
+    imported = JSON.parse(text);
+    if (!Array.isArray(imported)) throw new Error();
+  } catch(e) {
+    showToast('Invalid JSON file');
+    return;
+  }
+
+  const existingIds = new Set(items.map(i => i.id));
+  const toAdd = imported.filter(i => i.id && !existingIds.has(i.id));
+
+  if (toAdd.length === 0) {
+    showToast('No new items to import');
+    return;
+  }
+
+  try {
+    await Promise.all(toAdd.map(item => apiUpsert(item)));
+    items.unshift(...toAdd);
+    render();
+    showToast(`${toAdd.length} item${toAdd.length > 1 ? 's' : ''} imported (${imported.length - toAdd.length} skipped)`);
+  } catch(e) {
+    showToast('Error during import');
+  }
+}
+
+// ── Toast ─────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
