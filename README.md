@@ -123,7 +123,7 @@ Public signups are disabled. Users request access via the form on the login scre
 
 1. Visitor submits their email + optional message via the **request access** form
 2. You receive a notification email and see the request in the **requests** panel (purple button, visible only to the admin)
-3. Approve or reject — approved users receive a magic link to log in
+3. Approve or reject — approved users receive an email with instructions to log in via magic link
 
 Each user gets their own isolated list. Data is separated at the database level via RLS.
 
