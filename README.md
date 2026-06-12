@@ -72,7 +72,9 @@ create policy "anon can insert requests" on access_requests
 
 4. Go to **Authentication → URL Configuration** and set your site URL (e.g. `https://your-app.netlify.app` or your custom domain). Add the same URL to **Redirect URLs**. If you use branch deploys for staging (e.g. `https://dev--your-app.netlify.app`), add those URLs to the allowlist too — magic links dynamically redirect to whichever domain the login was requested from.
 
-5. Go to **Project Settings → API** and copy your **Project URL** and **Publishable (anon) key**.
+5. Go to **Authentication → Email Templates → Magic Link** and add `{{ .Token }}` to the template body. This sends a 6-digit code alongside the magic link — useful as a login fallback when email clients or security scanners pre-fetch and invalidate the link before the user clicks it.
+
+6. Go to **Project Settings → API** and copy your **Project URL** and **Publishable (anon) key**.
 
 ### 2. Resend (transactional email)
 

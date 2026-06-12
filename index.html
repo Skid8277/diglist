@@ -631,10 +631,14 @@
 <!-- Auth -->
 <div id="auth-screen">
   <div class="auth-title">diglist</div>
-  <div class="auth-sub" id="auth-sub">enter your email to receive a login link</div>
+  <div class="auth-sub" id="auth-sub">enter your email to receive a login code</div>
   <div class="auth-row" id="auth-row">
     <input class="auth-input" type="email" id="auth-input" placeholder="your@email.com" onkeydown="if(event.key==='Enter') tryAuth()">
-    <button class="auth-btn" id="auth-btn" onclick="tryAuth()">send link</button>
+    <button class="auth-btn" id="auth-btn" onclick="tryAuth()">send code</button>
+  </div>
+  <div class="auth-row" id="otp-row" style="display:none">
+    <input class="auth-input" type="text" inputmode="numeric" id="otp-input" placeholder="6-digit code" maxlength="6" onkeydown="if(event.key==='Enter') verifyOtp()">
+    <button class="auth-btn" id="otp-btn" onclick="verifyOtp()">verify</button>
   </div>
   <div class="auth-error" id="auth-error"></div>
   <div class="auth-request-link">
@@ -831,11 +835,46 @@ async function tryAuth() {
     if (!res.ok) throw new Error(data.error);
 
     document.getElementById('auth-row').style.display = 'none';
-    document.getElementById('auth-sub').textContent = 'if this email is registered, you\'ll receive a magic link shortly';
+    document.getElementById('otp-row').style.display = 'flex';
+    document.getElementById('auth-sub').textContent = 'if this email is registered, you\'ll receive a login code shortly';
+    document.getElementById('otp-input').focus();
   } catch (err) {
     document.getElementById('auth-error').textContent = err.message || 'unexpected error';
     btn.disabled = false;
-    btn.textContent = 'send link';
+    btn.textContent = 'send code';
+  }
+}
+
+async function verifyOtp() {
+  const email = document.getElementById('auth-input').value.trim();
+  const token = document.getElementById('otp-input').value.trim();
+  if (!token) return;
+
+  const btn = document.getElementById('otp-btn');
+  btn.disabled = true;
+  btn.textContent = 'verifying...';
+  document.getElementById('auth-error').textContent = '';
+
+  try {
+    const res = await fetch('/.netlify/functions/verify-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, token }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    currentSession = { access_token: data.access_token, refresh_token: data.refresh_token };
+    localStorage.setItem('diglist-session', JSON.stringify(currentSession));
+
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    loadItems();
+    checkAdminAccess();
+  } catch (err) {
+    document.getElementById('auth-error').textContent = err.message || 'invalid or expired code';
+    btn.disabled = false;
+    btn.textContent = 'verify';
   }
 }
 
