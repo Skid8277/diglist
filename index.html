@@ -762,24 +762,6 @@
 // Set your password here — this will NOT be committed to the repo
 let currentSession = null;
 
-// Handle magic link redirect — Supabase redirects to the app with the token in the hash
-async function handleAuthRedirect() {
-  const hash = window.location.hash;
-  console.log('[auth] hash:', hash);
-  if (!hash) return false;
-
-  const params = new URLSearchParams(hash.replace('#', ''));
-  const accessToken = params.get('access_token');
-  const refreshToken = params.get('refresh_token');
-  console.log('[auth] access_token found:', !!accessToken);
-  if (!accessToken) return false;
-
-  currentSession = { access_token: accessToken, refresh_token: refreshToken };
-  localStorage.setItem('diglist-session', JSON.stringify(currentSession));
-  history.replaceState(null, '', window.location.pathname); // remove the token hash from the URL without triggering a page reload (unlike window.location.hash = '')
-  return true;
-}
-
 async function restoreSession() {
   const saved = localStorage.getItem('diglist-session');
   console.log('[auth] localStorage session found:', !!saved);
@@ -829,7 +811,7 @@ async function tryAuth() {
     const res = await fetch('/.netlify/functions/auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, redirectTo: window.location.origin }),
+      body: JSON.stringify({ email }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
@@ -989,10 +971,9 @@ function closeAdminModal(e) {
 
 // Init auth
 (async () => {
-  const redirected = await handleAuthRedirect();
   const restored = await restoreSession();
-  console.log('[auth] redirected:', redirected, '| restored:', restored);
-  if (redirected || restored) {
+  console.log('[auth] restored:', restored);
+  if (restored) {
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     loadItems();

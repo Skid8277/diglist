@@ -11,23 +11,10 @@ exports.handler = async function (event) {
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers, body: "" };
   if (event.httpMethod !== "POST") return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
 
-  const { email, redirectTo } = JSON.parse(event.body);
+  const { email } = JSON.parse(event.body);
   if (!email) return { statusCode: 400, headers, body: JSON.stringify({ error: "Email required" }) };
 
-  const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN;
-  try {
-    const redirectUrl = new URL(redirectTo);
-    const allowedUrl = new URL(ALLOWED_ORIGIN);
-    const isMainOrigin = redirectUrl.origin === allowedUrl.origin;
-    const isNetlifyPreview = redirectUrl.hostname.endsWith('.netlify.app');
-    if (!isMainOrigin && !isNetlifyPreview) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid redirect URL" }) };
-    }
-  } catch (e) {
-    return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid redirect URL" }) };
-  }
-
-  const res = await fetch(`${SUPABASE_URL}/auth/v1/otp?redirect_to=${encodeURIComponent(redirectTo)}`, {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/otp`, {
     method: "POST",
     headers: {
       apikey: SUPABASE_KEY,

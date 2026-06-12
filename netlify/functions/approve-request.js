@@ -102,7 +102,7 @@ exports.handler = async function (event) {
         from: process.env.RESEND_FROM,
         to: request.email,
         subject: "You're in — diglist access approved",
-        html: `<p>Your request to join diglist has been approved.</p><p>Head to <a href="${siteUrl}">${siteUrl}</a> and enter your email to receive a magic link.</p>`,
+        html: `<p>Your request to join diglist has been approved.</p><p>Head to <a href="${siteUrl}">${siteUrl}</a> and enter your email to receive a login code.</p>`,
       }),
     });
   }
