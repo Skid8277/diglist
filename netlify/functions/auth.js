@@ -25,6 +25,10 @@ exports.handler = async function (event) {
 
   if (!res.ok) {
     const err = await res.json();
+    // Don't reveal whether an account exists — treat "no account" the same as success
+    if (err.error_code === "signup_disabled" || err.msg?.toLowerCase().includes("signups not allowed")) {
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    }
     return { statusCode: 400, headers, body: JSON.stringify({ error: err.msg || "Supabase error" }) };
   }
 
