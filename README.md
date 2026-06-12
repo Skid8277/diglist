@@ -144,7 +144,7 @@ netlify dev
 
 ## Architecture notes
 
-- **Auth**: Supabase Auth email OTP. The user receives a 6-digit code and enters it on the login screen, which is exchanged for a session via the `verify-otp` Netlify Function. JWTs are stored in `localStorage` and passed as `Authorization: Bearer` headers to Netlify Functions. No passwords anywhere. Sessions are silently refreshed when the access token expires — if the refresh token is also dead, the user is redirected to the login screen instead of seeing an error.
+- **Auth**: Supabase Auth email OTP. The user receives a numeric code and enters it on the login screen, which is exchanged for a session via the `verify-otp` Netlify Function. JWTs are stored in `localStorage` and passed as `Authorization: Bearer` headers to Netlify Functions. No passwords anywhere. Sessions are silently refreshed when the access token expires — if the refresh token is also dead, the user is redirected to the login screen instead of seeing an error.
 - **Data isolation**: Row Level Security in Postgres. Every query is automatically scoped to the authenticated user — even a bug in the JS cannot expose another user's data.
 - **Email**: Resend via Supabase's custom SMTP configuration. The `auth.js` Netlify Function calls Supabase's OTP endpoint to send the login code. The email is triggered by Supabase.
 - **Future scaling**: If multi-tenant isolation needs to be stricter (e.g. GDPR compliance for a SaaS), the schema is ready to migrate to per-user databases (e.g. Turso). The `user_id` column is already in place.

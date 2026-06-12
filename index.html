@@ -637,7 +637,7 @@
     <button class="auth-btn" id="auth-btn" onclick="tryAuth()">send code</button>
   </div>
   <div class="auth-row" id="otp-row" style="display:none">
-    <input class="auth-input" type="text" inputmode="numeric" id="otp-input" placeholder="6-digit code" maxlength="6" onkeydown="if(event.key==='Enter') verifyOtp()">
+    <input class="auth-input" type="text" inputmode="numeric" id="otp-input" placeholder="login code" maxlength="8" onkeydown="if(event.key==='Enter') verifyOtp()">
     <button class="auth-btn" id="otp-btn" onclick="verifyOtp()">verify</button>
   </div>
   <div class="auth-error" id="auth-error"></div>
