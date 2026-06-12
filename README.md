@@ -17,7 +17,7 @@ Add releases and tracks you want to listen to, tag them, track your status, and 
 - Paginated list (10 items per page)
 - Batch status edit and batch delete
 - Import / export as JSON
-- Magic link authentication (no passwords)
+- Email login code authentication (no passwords)
 - Multi-user support — each user sees only their own list
 - Public access request form — admin approves requests manually
 - Data persists across devices via Supabase
@@ -27,8 +27,8 @@ Add releases and tracks you want to listen to, tag them, track your status, and 
 
 - Vanilla HTML/JS — no framework, no build step
 - [Netlify Functions](https://docs.netlify.com/functions/overview/) — serverless API proxy
-- [Supabase](https://supabase.com) — Postgres database + Auth (magic links, RLS)
-- [Resend](https://resend.com) — transactional email for magic link delivery
+- [Supabase](https://supabase.com) — Postgres database + Auth (email OTP, RLS)
+- [Resend](https://resend.com) — transactional email for login code delivery
 
 ## Deploy your own
 
@@ -70,13 +70,19 @@ create policy "anon can insert requests" on access_requests
    - Disable **Confirm email**
    - Disable **Allow new users to sign up** (invite-only — see step 5)
 
-4. Go to **Authentication → URL Configuration** and set your site URL (e.g. `https://your-app.netlify.app` or your custom domain). Add the same URL to **Redirect URLs**. If you use branch deploys for staging (e.g. `https://dev--your-app.netlify.app`), add those URLs to the allowlist too — magic links dynamically redirect to whichever domain the login was requested from.
+4. Go to **Authentication → Email Templates → Magic Link** and replace the template body with one that shows the `{{ .Token }}` code, e.g.:
+
+```html
+<h2>Login code</h2>
+<p>Enter this code to log in:</p>
+<p><strong>{{ .Token }}</strong></p>
+```
 
 5. Go to **Project Settings → API** and copy your **Project URL** and **Publishable (anon) key**.
 
 ### 2. Resend (transactional email)
 
-Supabase's built-in email sender has strict rate limits (3 emails/hour on the free tier). Use Resend for reliable magic link delivery.
+Supabase's built-in email sender has strict rate limits (3 emails/hour on the free tier). Use Resend for reliable login code delivery.
 
 1. Create an account at [resend.com](https://resend.com)
 2. Go to **Domains → Add Domain** and enter your domain (e.g. `yourdomain.com`)
@@ -123,7 +129,7 @@ Public signups are disabled. Users request access via the form on the login scre
 
 1. Visitor submits their email + optional message via the **request access** form
 2. You receive a notification email and see the request in the **requests** panel (purple button, visible only to the admin)
-3. Approve or reject — approved users receive an email with instructions to log in via magic link
+3. Approve or reject — approved users receive an email with instructions to log in via a code
 
 Each user gets their own isolated list. Data is separated at the database level via RLS.
 
@@ -138,9 +144,9 @@ netlify dev
 
 ## Architecture notes
 
-- **Auth**: Supabase Auth magic links. JWTs are stored in `localStorage` and passed as `Authorization: Bearer` headers to Netlify Functions. No passwords anywhere. Sessions are silently refreshed when the access token expires — if the refresh token is also dead, the user is redirected to the login screen instead of seeing an error.
+- **Auth**: Supabase Auth email OTP. The user receives a numeric code and enters it on the login screen, which is exchanged for a session via the `verify-otp` Netlify Function. JWTs are stored in `localStorage` and passed as `Authorization: Bearer` headers to Netlify Functions. No passwords anywhere. Sessions are silently refreshed when the access token expires — if the refresh token is also dead, the user is redirected to the login screen instead of seeing an error.
 - **Data isolation**: Row Level Security in Postgres. Every query is automatically scoped to the authenticated user — even a bug in the JS cannot expose another user's data.
-- **Email**: Resend via Supabase's custom SMTP configuration. The `auth.js` Netlify Function calls Supabase's OTP endpoint with `redirect_to` derived from the requesting page's origin, so magic links land on the correct domain (production or staging). The email is triggered by Supabase.
+- **Email**: Resend via Supabase's custom SMTP configuration. The `auth.js` Netlify Function calls Supabase's OTP endpoint to send the login code. The email is triggered by Supabase.
 - **Future scaling**: If multi-tenant isolation needs to be stricter (e.g. GDPR compliance for a SaaS), the schema is ready to migrate to per-user databases (e.g. Turso). The `user_id` column is already in place.
 
 ## Contributing

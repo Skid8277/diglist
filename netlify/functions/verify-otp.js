@@ -11,22 +11,26 @@ exports.handler = async function (event) {
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers, body: "" };
   if (event.httpMethod !== "POST") return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
 
-  const { email } = JSON.parse(event.body);
-  if (!email) return { statusCode: 400, headers, body: JSON.stringify({ error: "Email required" }) };
+  const { email, token } = JSON.parse(event.body);
+  if (!email || !token) return { statusCode: 400, headers, body: JSON.stringify({ error: "Email and code required" }) };
 
-  const res = await fetch(`${SUPABASE_URL}/auth/v1/otp`, {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/verify`, {
     method: "POST",
     headers: {
       apikey: SUPABASE_KEY,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ email, create_user: false }),
+    body: JSON.stringify({ email, token, type: "email" }),
   });
 
+  const data = await res.json();
   if (!res.ok) {
-    const err = await res.json();
-    return { statusCode: 400, headers, body: JSON.stringify({ error: err.msg || "Supabase error" }) };
+    return { statusCode: 400, headers, body: JSON.stringify({ error: data.error_description || data.msg || "Invalid or expired code" }) };
   }
 
-  return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+  return {
+    statusCode: 200,
+    headers,
+    body: JSON.stringify({ access_token: data.access_token, refresh_token: data.refresh_token }),
+  };
 };
