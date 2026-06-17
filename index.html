@@ -772,17 +772,27 @@ async function restoreSession() {
     if (Date.now() > (payload.exp * 1000) - 5 * 60 * 1000) {
       console.log('[auth] access token stale, attempting proactive refresh');
       const ok = await refreshSession();
-      if (!ok) {
+      if (ok === 'dead') {
         localStorage.removeItem('diglist-session');
         currentSession = null;
         return false;
       }
+      if (!ok) return false;
     }
   } catch { /* JWT parse failed — let 401 path handle it */ }
   return true;
 }
 
 async function refreshSession() {
+  // Re-read localStorage in case another tab already rotated the token
+  const saved = localStorage.getItem('diglist-session');
+  if (saved) {
+    const stored = JSON.parse(saved);
+    if (stored.refresh_token !== currentSession?.refresh_token) {
+      currentSession = stored;
+      return true;
+    }
+  }
   if (!currentSession?.refresh_token) return false;
   try {
     const res = await fetch('/.netlify/functions/refresh', {
@@ -790,6 +800,8 @@ async function refreshSession() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: currentSession.refresh_token }),
     });
+    // Only treat 4xx as a dead token — network errors / 5xx are ambiguous, don't sign out
+    if (res.status >= 400 && res.status < 500) return 'dead';
     if (!res.ok) return false;
     const data = await res.json();
     currentSession = { access_token: data.access_token, refresh_token: data.refresh_token };
@@ -981,6 +993,13 @@ function closeAdminModal(e) {
   }
 })();
 
+// Proactively refresh the token when the tab regains focus or every 30 min,
+// so an idle-but-open tab never hits a stale token on the next write.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && currentSession) refreshSession();
+});
+setInterval(() => { if (currentSession) refreshSession(); }, 30 * 60 * 1000);
+
 // ── State ─────────────────────────────────────────────────
 let items = [];
 let editingId = null;
@@ -994,7 +1013,7 @@ async function apiGet() {
   });
   if (res.status === 401) {
     const refreshed = await refreshSession();
-    if (!refreshed) throw new Error('session_expired');
+    if (!refreshed || refreshed === 'dead') throw new Error('session_expired');
     const retry = await fetch('/.netlify/functions/items', {
       headers: { Authorization: `Bearer ${currentSession.access_token}` }
     });
@@ -1009,26 +1028,44 @@ async function apiGet() {
 
 async function apiUpsert(item) {
   const { id, ...rest } = item;
+  const body = JSON.stringify({ id, data: rest });
   const res = await fetch('/.netlify/functions/items', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${currentSession.access_token}`
-    },
-    body: JSON.stringify({ id, data: rest }),
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentSession.access_token}` },
+    body,
   });
+  if (res.status === 401) {
+    const refreshed = await refreshSession();
+    if (!refreshed || refreshed === 'dead') throw new Error('session_expired');
+    const retry = await fetch('/.netlify/functions/items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentSession.access_token}` },
+      body,
+    });
+    if (!retry.ok) throw new Error('Failed to save');
+    return;
+  }
   if (!res.ok) throw new Error('Failed to save');
 }
 
 async function apiDelete(id) {
+  const body = JSON.stringify({ id });
   const res = await fetch('/.netlify/functions/items', {
     method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${currentSession.access_token}`
-    },
-    body: JSON.stringify({ id }),
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentSession.access_token}` },
+    body,
   });
+  if (res.status === 401) {
+    const refreshed = await refreshSession();
+    if (!refreshed || refreshed === 'dead') throw new Error('session_expired');
+    const retry = await fetch('/.netlify/functions/items', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentSession.access_token}` },
+      body,
+    });
+    if (!retry.ok) throw new Error('Failed to delete');
+    return;
+  }
   if (!res.ok) throw new Error('Failed to delete');
 }
 
